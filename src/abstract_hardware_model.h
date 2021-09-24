@@ -721,7 +721,7 @@ class memory_space_t {
   unsigned m_bank;  // n in ".const[n]"; note .const == .const[0] (see PTX 2.1
                     // manual, sec. 5.1.3)
 };
-
+//daero
 const unsigned MAX_MEMORY_ACCESS_SIZE = 128;
 typedef std::bitset<MAX_MEMORY_ACCESS_SIZE> mem_access_byte_mask_t;
 const unsigned SECTOR_CHUNCK_SIZE = 4;  // four sectors
@@ -775,7 +775,11 @@ class mem_access_t {
     init(ctx);
     m_type = type;
     m_addr = address;
-    m_req_size = size;
+    if((m_addr>=0xC0000000)&&(m_addr<0xC2531A00)) //daero
+    //if((m_addr>=0xC0000000)&&(m_addr<0xC1E84800)) //daero
+          m_req_size = size*4;
+    else  m_req_size = size;
+    //m_req_size = size;
     m_write = wr;
   }
   mem_access_t(mem_access_type type, new_addr_type address, unsigned size,
@@ -788,7 +792,11 @@ class mem_access_t {
     init(ctx);
     m_type = type;
     m_addr = address;
-    m_req_size = size;
+    if((m_addr>=0xC0000000)&&(m_addr<0xC2531A00)) //daero
+    //if((m_addr>=0xC0000000)&&(m_addr<0xC1E84800)) //daero
+          m_req_size = size*4;
+    else  m_req_size = size;
+    //m_req_size = size;
     m_write = wr;
   }
 

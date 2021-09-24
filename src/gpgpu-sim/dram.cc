@@ -564,9 +564,16 @@ bool dram_t::issue_col_command(int j) {
         rwq->set_min_length(m_config->CL);
       }
       rwq->push(bk[j]->mrq);
-      bk[j]->mrq->txbytes += m_config->dram_atom_size;
-      CCDc = m_config->tCCD;
-      bkgrp[grp]->CCDLc = m_config->tCCDL;
+      //daero
+      if (bk[j]->mrq->nbytes == 64) {
+        bk[j]->mrq->txbytes += m_config->dram_atom_size*4;
+        CCDc = m_config->tCCD*4;
+        bkgrp[grp]->CCDLc = m_config->tCCDL*4;
+      } else {
+        bk[j]->mrq->txbytes += m_config->dram_atom_size;
+        CCDc = m_config->tCCD;
+        bkgrp[grp]->CCDLc = m_config->tCCDL;
+      }
       RTWc = m_config->tRTW;
       bk[j]->RTPc = m_config->BL / m_config->data_command_freq_ratio;
       bkgrp[grp]->RTPLc = m_config->tRTPL;

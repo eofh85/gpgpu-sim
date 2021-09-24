@@ -1012,7 +1012,7 @@ bool baseline_cache::bandwidth_management::data_port_free() const {
 bool baseline_cache::bandwidth_management::fill_port_free() const {
   return (m_fill_port_occupied_cycles == 0);
 }
-
+//daero
 /// Sends next request to lower level of memory
 void baseline_cache::cycle() {
   if (!m_miss_queue.empty()) {
@@ -1654,7 +1654,7 @@ enum cache_request_status data_cache::process_tag_probe(
 enum cache_request_status data_cache::access(new_addr_type addr, mem_fetch *mf,
                                              unsigned time,
                                              std::list<cache_event> &events) {
-  assert(mf->get_data_size() <= m_config.get_atom_sz());
+  //daero   assert(mf->get_data_size() <= m_config.get_atom_sz());
   bool wr = mf->get_is_write();
   new_addr_type block_addr = m_config.block_addr(addr);
   unsigned cache_index = (unsigned)-1;

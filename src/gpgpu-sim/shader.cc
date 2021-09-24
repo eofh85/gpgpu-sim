@@ -1914,7 +1914,7 @@ mem_stage_stall_type ldst_unit::process_memory_access_queue_l1cache(
                                 status);
   }
 }
-
+//daero
 void ldst_unit::L1_latency_queue_cycle() {
   for (int j = 0; j < m_config->m_L1D_config.l1_banks; j++) {
     if ((l1_latency_queue[j][0]) != NULL) {

@@ -1736,7 +1736,7 @@ void gpgpu_sim::issue_block2core() {
 
 unsigned long long g_single_step =
     0;  // set this in gdb to single step the pipeline
-
+//daero
 void gpgpu_sim::cycle() {
   int clock_mask = next_clock_domain();
 
