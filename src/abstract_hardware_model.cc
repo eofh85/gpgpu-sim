@@ -485,7 +485,7 @@ void warp_inst_t::memory_coalescing_arch(bool is_write,
     // all requests should be 32 bytes
     sector_segment_size = true;
   }
-
+//daero ??
   switch (data_size) {
     case 1:
       segment_size = 32;
@@ -524,12 +524,17 @@ void warp_inst_t::memory_coalescing_arch(bool is_write,
 
       assert(num_accesses <= MAX_ACCESSES_PER_INSN_PER_THREAD);
 
-      //            for(unsigned access=0; access<num_accesses; access++) {
+           //            for(unsigned access=0; access<num_accesses; access++) {
       for (unsigned access = 0;
            (access < MAX_ACCESSES_PER_INSN_PER_THREAD) &&
            (m_per_scalar_thread[thread].memreqaddr[access] != 0);
            access++) {
         new_addr_type addr = m_per_scalar_thread[thread].memreqaddr[access];
+         //daero-1
+        if((addr>=0xC0000000)&&(addr<0xC2531A00))
+            segment_size = 128;
+        else segment_size = sector_segment_size ? 32 : 128; //add assert
+
         unsigned block_address = line_size_based_tag_func(addr, segment_size);
         unsigned chunk =
             (addr & 127) / 32;  // which 32-byte chunk within in a 128-byte
@@ -586,7 +591,7 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
   unsigned segment_size = 0;
   unsigned warp_parts = m_config->mem_warp_parts;
   bool sector_segment_size = false;
-
+//daero
   if (m_config->gpgpu_coalesce_arch >= 20 &&
       m_config->gpgpu_coalesce_arch < 39) {
     // Fermi and Kepler, L1 is normal and L2 is sector
@@ -653,7 +658,7 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
         info = &subwarp_transactions[block_address].back();
       }
       assert(info);
-
+      //daero check info
       info->chunks.set(chunk);
       info->active.set(thread);
       unsigned idx = (addr & 127);
@@ -681,7 +686,7 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
     }
   }
 }
-
+//daero
 void warp_inst_t::memory_coalescing_arch_reduce_and_send(
     bool is_write, mem_access_type access_type, const transaction_info &info,
     new_addr_type addr, unsigned segment_size) {
@@ -692,6 +697,10 @@ void warp_inst_t::memory_coalescing_arch_reduce_and_send(
   std::bitset<2> h;  // halves (used to check if 64 byte segment can be
                      // compressed into a single 32 byte segment)
 
+  /*if((addr>=0xC0000000)&&(addr<0xC2531A00)) //daero //add printf for checking addr 
+  //if((m_addr>=0xC0000000)&&(m_addr<0xC1E84800)) //daero
+        size = 128;
+  else  size = segment_size; */
   unsigned size = segment_size;
   if (segment_size == 128) {
     bool lower_half_used = q[0] || q[1];

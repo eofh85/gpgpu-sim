@@ -218,6 +218,10 @@ class memory_config {
         BL * busW * gpu_n_mem_per_ctrlr;  // burst length x bus width x # chips
                                           // per partition
 
+    dram_atom_long_size = //daero
+        BL*4 * busW * gpu_n_mem_per_ctrlr;  // burst length x bus width x # chips
+                                          // per partition
+
     assert(m_n_sub_partition_per_memory_channel > 0);
     assert((nbk % m_n_sub_partition_per_memory_channel == 0) &&
            "Number of DRAM banks must be a perfect multiple of memory sub "
@@ -298,6 +302,9 @@ class memory_config {
                                 // command bus (2 for GDDR3, 4 for GDDR5)
   unsigned
       dram_atom_size;  // number of bytes transferred per read or write command
+
+  unsigned //daero
+      dram_atom_long_size;  // number of bytes transferred per read or write command
 
   linear_to_raw_address_translation m_address_mapping;
 

@@ -694,7 +694,7 @@ bool memory_sub_partition::busy() const { return !m_request_tracker.empty(); }
 std::vector<mem_fetch *>
 memory_sub_partition::breakdown_request_to_sector_requests(mem_fetch *mf) {
   std::vector<mem_fetch *> result;
-//daero
+//daero -3
   if (mf->get_data_size() == SECTOR_SIZE &&
       mf->get_access_sector_mask().count() == 1) {
     result.push_back(mf);

@@ -292,7 +292,7 @@ void dram_t::cycle() {
       printf("\tDQ: BK%d Row:%03x Col:%03x", cmd->bk, cmd->row,
              cmd->col + cmd->dqbytes);
 #endif
-      cmd->dqbytes += m_config->dram_atom_size;
+      cmd->dqbytes += m_config->dram_atom_size;// check
 
       if (cmd->dqbytes >= cmd->nbytes) {
         mem_fetch *data = cmd->data;
@@ -305,6 +305,7 @@ void dram_t::cycle() {
         } else {
           m_memory_partition_unit->set_done(data);
           delete data;
+          
         }
         delete cmd;
       }
@@ -565,26 +566,38 @@ bool dram_t::issue_col_command(int j) {
       }
       rwq->push(bk[j]->mrq);
       //daero
-      if (bk[j]->mrq->nbytes == 64) {
-        bk[j]->mrq->txbytes += m_config->dram_atom_size*4;
+      //printf("\tdaero  nbytes : %03x \n", bk[j]->mrq->nbytes);
+      if (bk[j]->mrq->nbytes == 128) { // check nbytes = 128
+        bk[j]->mrq->txbytes += m_config->dram_atom_long_size;
         CCDc = m_config->tCCD*4;
         bkgrp[grp]->CCDLc = m_config->tCCDL*4;
-      } else {
+        RTWc = m_config->tRTW + m_config->tCCDL*3; //add cycles
+        bk[j]->RTPc = m_config->BL*4 / m_config->data_command_freq_ratio; //BL
+        bkgrp[grp]->RTPLc = m_config->tRTPL + m_config->tCCDL*3;
+      } else { //add assert
+        assert(bk[j]->mrq->nbytes != 32);
         bk[j]->mrq->txbytes += m_config->dram_atom_size;
         CCDc = m_config->tCCD;
         bkgrp[grp]->CCDLc = m_config->tCCDL;
+        RTWc = m_config->tRTW; //add cycles
+        bk[j]->RTPc = m_config->BL / m_config->data_command_freq_ratio; //BL
+        bkgrp[grp]->RTPLc = m_config->tRTPL;
       }
-      RTWc = m_config->tRTW;
-      bk[j]->RTPc = m_config->BL / m_config->data_command_freq_ratio;
-      bkgrp[grp]->RTPLc = m_config->tRTPL;
       issued = true;
       if (bk[j]->mrq->data->get_access_type() == L2_WR_ALLOC_R)
         n_rd_L2_A++;
       else
         n_rd++;
 
-      bwutil += m_config->BL / m_config->data_command_freq_ratio;
-      bwutil_partial += m_config->BL / m_config->data_command_freq_ratio;
+      //daero
+      if (bk[j]->mrq->nbytes == 128) {
+        bwutil += m_config->BL*4 / m_config->data_command_freq_ratio;
+        bwutil_partial += m_config->BL*4 / m_config->data_command_freq_ratio;
+      } else { //add assert
+        assert(bk[j]->mrq->nbytes != 32);
+        bwutil += m_config->BL / m_config->data_command_freq_ratio;
+        bwutil_partial += m_config->BL / m_config->data_command_freq_ratio;
+      }
       bk[j]->n_access++;
 
 #ifdef DRAM_VERIFY
@@ -607,19 +620,37 @@ bool dram_t::issue_col_command(int j) {
       }
       rwq->push(bk[j]->mrq);
 
-      bk[j]->mrq->txbytes += m_config->dram_atom_size;
-      CCDc = m_config->tCCD;
-      bkgrp[grp]->CCDLc = m_config->tCCDL;
-      WTRc = m_config->tWTR;
-      bk[j]->WTPc = m_config->tWTP;
+      //daero
+      //printf("\tdaero  nbytes : %03x \n", bk[j]->mrq->nbytes);
+      if (bk[j]->mrq->nbytes == 128) { // check nbytes = 128
+        bk[j]->mrq->txbytes += m_config->dram_atom_long_size;
+        CCDc = m_config->tCCD*4;
+        bkgrp[grp]->CCDLc = m_config->tCCDL*4;
+        WTRc = m_config->tWTR + m_config->tCCDL*3;
+        bk[j]->WTPc = m_config->tWTP + m_config->tCCDL*3;
+      } else { //add assert
+        assert(bk[j]->mrq->nbytes != 32);
+        bk[j]->mrq->txbytes += m_config->dram_atom_size;
+        CCDc = m_config->tCCD;
+        bkgrp[grp]->CCDLc = m_config->tCCDL;
+        WTRc = m_config->tWTR;
+        bk[j]->WTPc = m_config->tWTP;
+      }
       issued = true;
 
       if (bk[j]->mrq->data->get_access_type() == L2_WRBK_ACC)
         n_wr_WB++;
       else
         n_wr++;
-      bwutil += m_config->BL / m_config->data_command_freq_ratio;
-      bwutil_partial += m_config->BL / m_config->data_command_freq_ratio;
+      if (bk[j]->mrq->nbytes == 128) {
+        bwutil += m_config->BL*4 / m_config->data_command_freq_ratio;
+        bwutil_partial += m_config->BL*4 / m_config->data_command_freq_ratio;
+      } else { //add assert
+        assert(bk[j]->mrq->nbytes != 32);
+        bwutil += m_config->BL / m_config->data_command_freq_ratio;
+        bwutil_partial += m_config->BL / m_config->data_command_freq_ratio;
+      }
+
 #ifdef DRAM_VERIFY
       PRINT_CYCLE = 1;
       printf("\tWR  Bk:%d Row:%03x Col:%03x \n", j, bk[j]->curr_row,
