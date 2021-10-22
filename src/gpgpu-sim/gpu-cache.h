@@ -251,7 +251,6 @@ struct sector_cache_block : public cache_block_t {
     init();
     m_tag = tag;
     m_block_addr = block_addr;
-
     unsigned sidx = get_sector_index(sector_mask);
 
     // set sector stats

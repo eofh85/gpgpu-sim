@@ -56,6 +56,7 @@ class dram_req_t {
   unsigned int col;
   unsigned int bk;
   unsigned int nbytes;
+  unsigned int nbytes_long;//daero
   unsigned int txbytes;
   unsigned int dqbytes;
   unsigned int age;

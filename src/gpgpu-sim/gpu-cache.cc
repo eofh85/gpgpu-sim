@@ -340,6 +340,7 @@ enum cache_request_status tag_array::access(new_addr_type addr, unsigned time,
   m_access++;
   is_used = true;
   shader_cache_access_log(m_core_id, m_type_id, 0);  // log accesses to cache
+  //printf("daero-1\n"); printf("daero mf count-3 : %d\n",mf->get_access_sector_mask().count());
   enum cache_request_status status = probe(addr, idx, mf);
   switch (status) {
     case HIT_RESERVED:
@@ -391,6 +392,7 @@ void tag_array::fill(new_addr_type addr, unsigned time,
                      mem_access_sector_mask_t mask) {
   // assert( m_config.m_alloc_policy == ON_FILL );
   unsigned idx;
+  //printf("daero-2\n");
   enum cache_request_status status = probe(addr, idx, mask);
   // assert(status==MISS||status==SECTOR_MISS); // MSHR should have prevented
   // redundant memory request
@@ -1052,7 +1054,7 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time) {
   extra_mf_fields_lookup::iterator e = m_extra_mf_fields.find(mf);
   assert(e != m_extra_mf_fields.end());
   assert(e->second.m_valid);
-  mf->set_data_size(e->second.m_data_size);
+  mf->set_data_size(e->second.m_data_size);//printf("daero-d2\n");
   mf->set_addr(e->second.m_addr);
   if (m_config.m_alloc_policy == ON_MISS)
     m_tag_array->fill(e->second.m_cache_index, time, mf);
@@ -1116,6 +1118,7 @@ void baseline_cache::send_read_request(new_addr_type addr,
   new_addr_type mshr_addr = m_config.mshr_addr(mf->get_addr());
   bool mshr_hit = m_mshrs.probe(mshr_addr);
   bool mshr_avail = !m_mshrs.full(mshr_addr);
+  //printf("daero, send_read_request\n");
   if (mshr_hit && mshr_avail) {
     if (read_only)
       m_tag_array->access(block_addr, time, cache_index, mf);
@@ -1133,12 +1136,22 @@ void baseline_cache::send_read_request(new_addr_type addr,
       m_tag_array->access(block_addr, time, cache_index, wb, evicted, mf);
 
     m_mshrs.add(mshr_addr, mf);
-    if (m_config.is_streaming() && m_config.m_cache_type == SECTOR) {
+    //daero if (m_config.is_streaming() && m_config.m_cache_type == SECTOR) {
+    if (m_config.is_streaming() && m_config.m_cache_type == SECTOR && mf->get_data_long() == 0) {
+      assert(mf->get_data_long()==0);
       m_tag_array->add_pending_line(mf);
     }
     m_extra_mf_fields[mf] = extra_mf_fields(
         mshr_addr, mf->get_addr(), cache_index, mf->get_data_size(), m_config);
-    mf->set_data_size(m_config.get_atom_sz());
+    //printf("daero-1 data_size = %d, data_long = %d\n",mf->get_data_size(),mf->get_data_long());
+    //mf->set_data_size(m_config.get_atom_sz());
+    if (mf->get_data_long()) { //daero send_read_request
+      mf->set_data_size(m_config.get_atom_sz()*4);
+    } else {
+      assert(mf->get_data_long()==0);
+      mf->set_data_size(m_config.get_atom_sz());
+    }
+    //printf("daero-1 data_long : %d \n",mf->get_data_long());
     mf->set_addr(mshr_addr);
     m_miss_queue.push_back(mf);
     mf->set_status(m_miss_queue_status, time);
@@ -1171,6 +1184,7 @@ cache_request_status data_cache::wr_hit_wb(new_addr_type addr,
                                            std::list<cache_event> &events,
                                            enum cache_request_status status) {
   new_addr_type block_addr = m_config.block_addr(addr);
+  //printf("daero, wr_hit_wb\n");
   m_tag_array->access(block_addr, time, cache_index, mf);  // update LRU state
   cache_block_t *block = m_tag_array->get_block(cache_index);
   block->set_status(MODIFIED, mf->get_access_sector_mask());
@@ -1190,6 +1204,7 @@ cache_request_status data_cache::wr_hit_wt(new_addr_type addr,
   }
 
   new_addr_type block_addr = m_config.block_addr(addr);
+  //printf("daero, wr_hit_wbt\n");
   m_tag_array->access(block_addr, time, cache_index, mf);  // update LRU state
   cache_block_t *block = m_tag_array->get_block(cache_index);
   block->set_status(MODIFIED, mf->get_access_sector_mask());
@@ -1290,6 +1305,7 @@ enum cache_request_status data_cache::wr_miss_wa_naive(
   evicted_block_info evicted;
 
   // Send read request resulting from write miss
+  //printf("daero send_read_request-1 \n");
   send_read_request(addr, block_addr, cache_index, n_mf, time, do_miss, wb,
                     evicted, events, false, true);
 
@@ -1336,6 +1352,7 @@ enum cache_request_status data_cache::wr_miss_wa_fetch_on_write(
     bool wb = false;
     evicted_block_info evicted;
 
+    //printf("daero, wr_miss_wa_fetch_on_write\n");
     cache_request_status status =
         m_tag_array->access(block_addr, time, cache_index, wb, evicted, mf);
     assert(status != HIT);
@@ -1406,6 +1423,7 @@ enum cache_request_status data_cache::wr_miss_wa_fetch_on_write(
     bool do_miss = false;
     bool wb = false;
     evicted_block_info evicted;
+    //printf("daero send_read_request-2 \n");
     send_read_request(addr, block_addr, cache_index, n_mf, time, do_miss, wb,
                       evicted, events, false, true);
 
@@ -1451,6 +1469,7 @@ enum cache_request_status data_cache::wr_miss_wa_lazy_fetch_on_read(
   bool wb = false;
   evicted_block_info evicted;
 
+  //printf("daero, wr_miss_wa_lazy_fetch_on_read\n");
   cache_request_status m_status =
       m_tag_array->access(block_addr, time, cache_index, wb, evicted, mf);
   assert(m_status != HIT);
@@ -1510,6 +1529,7 @@ enum cache_request_status data_cache::rd_hit_base(
     new_addr_type addr, unsigned cache_index, mem_fetch *mf, unsigned time,
     std::list<cache_event> &events, enum cache_request_status status) {
   new_addr_type block_addr = m_config.block_addr(addr);
+  //printf("daero, rd_hit_base\n");
   m_tag_array->access(block_addr, time, cache_index, mf);
   // Atomics treated as global read/write requests - Perform read, mark line as
   // MODIFIED
@@ -1535,11 +1555,13 @@ enum cache_request_status data_cache::rd_miss_base(
     m_stats.inc_fail_stats(mf->get_access_type(), MISS_QUEUE_FULL);
     return RESERVATION_FAIL;
   }
-
+  //printf("daero mf count-1 : %d\n",mf->get_access_sector_mask().count());
   new_addr_type block_addr = m_config.block_addr(addr);
   bool do_miss = false;
   bool wb = false;
   evicted_block_info evicted;
+  //printf("daero-d3 \n");
+  //printf("daero send_read_request-3 \n");
   send_read_request(addr, block_addr, cache_index, mf, time, do_miss, wb,
                     evicted, events, false, false);
 
@@ -1571,6 +1593,7 @@ enum cache_request_status read_only_cache::access(
   assert(!mf->get_is_write());
   new_addr_type block_addr = m_config.block_addr(addr);
   unsigned cache_index = (unsigned)-1;
+  //printf("daero-3\n");
   enum cache_request_status status =
       m_tag_array->probe(block_addr, cache_index, mf);
   enum cache_request_status cache_status = RESERVATION_FAIL;
@@ -1581,6 +1604,7 @@ enum cache_request_status read_only_cache::access(
   } else if (status != RESERVATION_FAIL) {
     if (!miss_queue_full(0)) {
       bool do_miss = false;
+      //printf("daero send_read_request-4 \n");
       send_read_request(addr, block_addr, cache_index, mf, time, do_miss,
                         events, true, false);
       if (do_miss)
@@ -1654,10 +1678,11 @@ enum cache_request_status data_cache::process_tag_probe(
 enum cache_request_status data_cache::access(new_addr_type addr, mem_fetch *mf,
                                              unsigned time,
                                              std::list<cache_event> &events) {
-  //daero-2   assert(mf->get_data_size() <= m_config.get_atom_sz());
+  //daero   assert(mf->get_data_size() <= m_config.get_atom_sz());
   bool wr = mf->get_is_write();
   new_addr_type block_addr = m_config.block_addr(addr);
   unsigned cache_index = (unsigned)-1;
+  //printf("daero-4\n");printf("daero mf count-2 : %d\n",mf->get_access_sector_mask().count());
   enum cache_request_status probe_status =
       m_tag_array->probe(block_addr, cache_index, mf, true);
   enum cache_request_status access_status =
@@ -1676,6 +1701,7 @@ enum cache_request_status data_cache::access(new_addr_type addr, mem_fetch *mf,
 enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
                                            unsigned time,
                                            std::list<cache_event> &events) {
+  //printf("daero l1_cache\n");
   return data_cache::access(addr, mf, time, events);
 }
 
@@ -1685,6 +1711,7 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 enum cache_request_status l2_cache::access(new_addr_type addr, mem_fetch *mf,
                                            unsigned time,
                                            std::list<cache_event> &events) {
+  //printf("daero l2_cache\n");
   return data_cache::access(addr, mf, time, events);
 }
 

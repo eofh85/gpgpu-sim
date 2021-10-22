@@ -775,11 +775,18 @@ class mem_access_t {
     init(ctx);
     m_type = type;
     m_addr = address;
-    if((m_addr>=0xC0000000)&&(m_addr<0xC2531A00)) //daero
-    //if((m_addr>=0xC0000000)&&(m_addr<0xC1E84800)) //daero
+    
+    //if((m_addr>=0xC0000000)&&(m_addr<0xC2531A00)) {//daero
+    if((m_addr>=0xC0000000)&&(m_addr<0xC04C0300)) {//daero
           m_req_size = size*4;
-    else  m_req_size = size;
+          m_req_long = 1;
+    } else {
+          m_req_size = size;
+          m_req_long = 0;
+    }
+    //printf("\tdaero1  m_req_size : %d, size : %d, m_req_long : %d \n", m_req_size,size,m_req_long);
     //m_req_size = size;
+    //m_req_long = 0;
     m_write = wr;
   }
   mem_access_t(mem_access_type type, new_addr_type address, unsigned size,
@@ -792,17 +799,25 @@ class mem_access_t {
     init(ctx);
     m_type = type;
     m_addr = address;
-    if((m_addr>=0xC0000000)&&(m_addr<0xC2531A00)) //daero
-    //if((m_addr>=0xC0000000)&&(m_addr<0xC1E84800)) //daero
-          m_req_size = size*4;
-    else  m_req_size = size;
+    //if((m_addr>=0xC0000000)&&(m_addr<0xC2531A00)) {//daero
+    if((m_addr>=0xC0000000)&&(m_addr<0xC04C0300)) {//daero
+      m_req_size = size*4;
+      m_req_long = 1;
+      m_sector_mask = 1;
+    } else  {
+      m_req_size = size;
+      m_req_long = 0;
+    }
     //m_req_size = size;
+    //m_req_long = 0;
+    //printf("\tdaero2  m_req_size : %d, size : %d, m_req_long : %d \n", m_req_size,size,m_req_long);
     m_write = wr;
   }
 
   new_addr_type get_addr() const { return m_addr; }
   void set_addr(new_addr_type addr) { m_addr = addr; }
   unsigned get_size() const { return m_req_size; }
+  unsigned get_long() const { return m_req_long; } //daero
   const active_mask_t &get_warp_mask() const { return m_warp_mask; }
   bool is_write() const { return m_write; }
   enum mem_access_type get_type() const { return m_type; }
@@ -855,6 +870,7 @@ class mem_access_t {
   new_addr_type m_addr;  // request address
   bool m_write;
   unsigned m_req_size;  // bytes
+  unsigned m_req_long;  // bytes size //daero
   mem_access_type m_type;
   active_mask_t m_warp_mask;
   mem_access_byte_mask_t m_byte_mask;

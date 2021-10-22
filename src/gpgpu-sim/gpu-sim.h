@@ -219,7 +219,7 @@ class memory_config {
                                           // per partition
 
     dram_atom_long_size = //daero
-        BL*4 * busW * gpu_n_mem_per_ctrlr;  // burst length x bus width x # chips
+        BL * 4 * busW * gpu_n_mem_per_ctrlr;  // burst length x 4 x bus width x # chips
                                           // per partition
 
     assert(m_n_sub_partition_per_memory_channel > 0);

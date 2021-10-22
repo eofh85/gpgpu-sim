@@ -184,7 +184,6 @@ class cuda_runtime_api {
   std::map<int, std::string> fatbinmap;
   std::map<std::string, symbol_table *> name_symtab;
   std::map<unsigned long long, size_t> g_mallocPtr_Size;
-  std::map<unsigned long long, size_t> g_mallocPtr_Strong; //daero
   // maps sm version number to set of filenames
   std::map<unsigned, std::set<std::string> > version_filename;
   std::map<void *, void **> pinned_memory;  // support for pinned memories added

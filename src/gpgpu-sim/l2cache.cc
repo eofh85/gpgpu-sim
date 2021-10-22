@@ -236,7 +236,7 @@ void memory_partition_unit::simple_dram_model_cycle() {
           m_sub_partition[dest_spid]->set_done(mf_return);
           delete mf_return;
         } else {
-          m_sub_partition[dest_spid]->dram_L2_queue_push(mf_return);
+          m_sub_partition[dest_spid]->dram_L2_queue_push(mf_return);//printf("daero_d15\n");
           mf_return->set_status(
               IN_PARTITION_DRAM_TO_L2_QUEUE,
               m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
@@ -290,8 +290,9 @@ void memory_partition_unit::simple_dram_model_cycle() {
 void memory_partition_unit::dram_cycle() {
   // pop completed memory request from dram and push it to dram-to-L2 queue
   // of the original sub partition
-  mem_fetch *mf_return = m_dram->return_queue_top();
+  mem_fetch *mf_return = m_dram->return_queue_top(); //printf("daero-d6,mf_return: %d \n",mf_return);
   if (mf_return) {
+      //printf("daero-d7 \n");
     unsigned dest_global_spid = mf_return->get_sub_partition_id();
     int dest_spid = global_sub_partition_id_to_local_id(dest_global_spid);
     assert(m_sub_partition[dest_spid]->get_id() == dest_global_spid);
@@ -300,7 +301,7 @@ void memory_partition_unit::dram_cycle() {
         m_sub_partition[dest_spid]->set_done(mf_return);
         delete mf_return;
       } else {
-        m_sub_partition[dest_spid]->dram_L2_queue_push(mf_return);
+        m_sub_partition[dest_spid]->dram_L2_queue_push(mf_return);//printf("daero_d16\n");
         mf_return->set_status(IN_PARTITION_DRAM_TO_L2_QUEUE,
                               m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
         m_arbitration_metadata.return_credit(dest_spid);
@@ -311,6 +312,7 @@ void memory_partition_unit::dram_cycle() {
       m_dram->return_queue_pop();
     }
   } else {
+      //printf("daero-d8 \n");
     m_dram->return_queue_pop();
   }
 
@@ -356,6 +358,7 @@ void memory_partition_unit::dram_cycle() {
     mem_fetch *mf = m_dram_latency_queue.front().req;
     m_dram_latency_queue.pop_front();
     m_dram->push(mf);
+      //printf("daero-d9 \n");
   }
 }
 
@@ -457,6 +460,7 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
         mf->set_status(IN_PARTITION_L2_TO_ICNT_QUEUE,
                        m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
         m_L2_icnt_queue->push(mf);
+        //printf("daero_d10\n");
       } else {
         if (m_config->m_L2_config.m_write_alloc_policy == FETCH_ON_WRITE) {
           mem_fetch *original_wr_mf = mf->get_original_wr_mf();
@@ -466,6 +470,7 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
               IN_PARTITION_L2_TO_ICNT_QUEUE,
               m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
           m_L2_icnt_queue->push(original_wr_mf);
+          //printf("daero_d11\n");
         }
         m_request_tracker.erase(mf);
         delete mf;
@@ -488,7 +493,7 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
       if (mf->is_write() && mf->get_type() == WRITE_ACK)
         mf->set_status(IN_PARTITION_L2_TO_ICNT_QUEUE,
                        m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
-      m_L2_icnt_queue->push(mf);
+      m_L2_icnt_queue->push(mf);//printf("daero_d12\n");
       m_dram_L2_queue->pop();
     }
   }
@@ -499,6 +504,7 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
   // new L2 texture accesses and/or non-texture accesses
   if (!m_L2_dram_queue->full() && !m_icnt_L2_queue->empty()) {
     mem_fetch *mf = m_icnt_L2_queue->top();
+    //printf("daero mf count-4 : %d\n",mf->get_access_sector_mask().count());
     if (!m_config->m_L2_config.disabled() &&
         ((m_config->m_L2_texure_only && mf->istexture()) ||
          (!m_config->m_L2_texure_only))) {
@@ -507,6 +513,7 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
       bool port_free = m_L2cache->data_port_free();
       if (!output_full && port_free) {
         std::list<cache_event> events;
+        //printf("daero l2_cache cache_cycle\n");
         enum cache_request_status status =
             m_L2cache->access(mf->get_addr(), mf,
                               m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle +
@@ -528,7 +535,7 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
               mf->set_reply();
               mf->set_status(IN_PARTITION_L2_TO_ICNT_QUEUE,
                              m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
-              m_L2_icnt_queue->push(mf);
+              m_L2_icnt_queue->push(mf);//printf("daero_d13\n");
             }
             m_icnt_L2_queue->pop();
           } else {
@@ -544,7 +551,7 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
             mf->set_reply();
             mf->set_status(IN_PARTITION_L2_TO_ICNT_QUEUE,
                            m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
-            m_L2_icnt_queue->push(mf);
+            m_L2_icnt_queue->push(mf);//printf("daero_d14\n");
           }
           // L2 cache accepted request
           m_icnt_L2_queue->pop();
@@ -596,6 +603,7 @@ bool memory_sub_partition::dram_L2_queue_full() const {
 
 void memory_sub_partition::dram_L2_queue_push(class mem_fetch *mf) {
   m_dram_L2_queue->push(mf);
+  //printf("daero-d5 dram-> L2 \n");
 }
 
 void memory_sub_partition::print_cache_stat(unsigned &accesses,
@@ -698,13 +706,15 @@ memory_sub_partition::breakdown_request_to_sector_requests(mem_fetch *mf) {
   if (mf->get_data_size() == SECTOR_SIZE &&
       mf->get_access_sector_mask().count() == 1) {
     result.push_back(mf);
+  //} else if (mf->get_data_long() == 1) {//daero
+  //  result.push_back(mf);
   } else if (mf->get_data_size() == 128 || mf->get_data_size() == 64) {
     // We only accept 32, 64 and 128 bytes reqs
     unsigned start = 0, end = 0;
     if (mf->get_data_size() == 128) {
       start = 0;
-      //daero end = 3;
-      end = 1;
+      end = 3;
+      //end = 1; //TODO??
     } else if (mf->get_data_size() == 64 &&
                mf->get_access_sector_mask().to_string() == "1100") {
       start = 2;
@@ -730,7 +740,7 @@ memory_sub_partition::breakdown_request_to_sector_requests(mem_fetch *mf) {
           mf->get_addr(), mf->get_access_sector_mask(), mf->get_data_size());
       assert(0 && "Undefined sector mask is received");
     }
-
+    //daero TODO
     std::bitset<SECTOR_SIZE * SECTOR_CHUNCK_SIZE> byte_sector_mask;
     byte_sector_mask.reset();
     for (unsigned k = start * SECTOR_SIZE; k < SECTOR_SIZE; ++k)
@@ -767,11 +777,13 @@ void memory_sub_partition::push(mem_fetch *m_req, unsigned long long cycle) {
   if (m_req) {
     m_stats->memlatstat_icnt2mem_pop(m_req);
     std::vector<mem_fetch *> reqs;
-    if (m_config->m_L2_config.m_cache_type == SECTOR)
+    //daero if (m_config->m_L2_config.m_cache_type == SECTOR)
+    if (m_config->m_L2_config.m_cache_type == SECTOR && m_req->get_data_long() == 0)
       reqs = breakdown_request_to_sector_requests(m_req);
     else
       reqs.push_back(m_req);
 
+    //printf("daero req count : %d\n",m_req->get_access_sector_mask().count());
     for (unsigned i = 0; i < reqs.size(); ++i) {
       mem_fetch *req = reqs[i];
       m_request_tracker.insert(req);
@@ -808,6 +820,7 @@ mem_fetch *memory_sub_partition::top() {
   if (mf && (mf->get_access_type() == L2_WRBK_ACC ||
              mf->get_access_type() == L1_WRBK_ACC)) {
     m_L2_icnt_queue->pop();
+    //printf("daero-d4 L2->icnt \n");
     m_request_tracker.erase(mf);
     delete mf;
     mf = NULL;

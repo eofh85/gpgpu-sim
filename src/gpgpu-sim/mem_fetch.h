@@ -63,6 +63,7 @@ class mem_fetch {
   void set_reply() {
     assert(m_access.get_type() != L1_WRBK_ACC &&
            m_access.get_type() != L2_WRBK_ACC);
+           //printf("daero, m_access.get_type = %d, 4:GLOBAL_ACC_W, 6:L1_WRBK_ACC,7:L2_WRBK_ACC\n",m_access.get_type());
     if (m_type == READ_REQUEST) {
       assert(!get_is_write());
       m_type = READ_REPLY;
@@ -81,6 +82,7 @@ class mem_fetch {
     m_raw_addr.sub_partition = sub_partition_id;
   }
   unsigned get_data_size() const { return m_data_size; }
+  unsigned get_data_long() const { return m_data_long; } //daero
   void set_data_size(unsigned size) { m_data_size = size; }
   unsigned get_ctrl_size() const { return m_ctrl_size; }
   unsigned size() const { return m_data_size + m_ctrl_size; }
@@ -142,6 +144,7 @@ class mem_fetch {
   // request type, address, size, mask
   mem_access_t m_access;
   unsigned m_data_size;  // how much data is being written
+  unsigned m_data_long;  // daero
   unsigned
       m_ctrl_size;  // how big would all this meta data be in hardware (does not
                     // necessarily match actual size of mem_fetch)

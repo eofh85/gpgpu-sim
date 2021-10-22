@@ -454,6 +454,7 @@ void warp_inst_t::generate_mem_accesses() {
       for (unsigned i = 0; i < data_size; i++) byte_mask.set(idx + i);
     }
     for (a = accesses.begin(); a != accesses.end(); ++a)
+    //printf("daero mf sector_mask-1 : %d\n");
       m_accessq.push_back(mem_access_t(
           access_type, a->first, cache_block_size, is_write, a->second,
           byte_mask, mem_access_sector_mask_t(), m_config->gpgpu_ctx));
@@ -485,7 +486,6 @@ void warp_inst_t::memory_coalescing_arch(bool is_write,
     // all requests should be 32 bytes
     sector_segment_size = true;
   }
-//daero ??
   switch (data_size) {
     case 1:
       segment_size = 32;
@@ -530,10 +530,10 @@ void warp_inst_t::memory_coalescing_arch(bool is_write,
            (m_per_scalar_thread[thread].memreqaddr[access] != 0);
            access++) {
         new_addr_type addr = m_per_scalar_thread[thread].memreqaddr[access];
-         //daero-1
-        if((addr>=0xC0000000)&&(addr<0xC2531A00))
-            segment_size = 128;
-        else segment_size = sector_segment_size ? 32 : 128; //add assert
+        if((addr>=0xC0000000)&&(addr<0xC04C0300)) segment_size = 128; //daero
+        //if((addr>=0xC0000000)&&(addr<0xC2161100)) segment_size = 128;
+        //else segment_size = sector_segment_size ? 32 : 128;
+        //segment_size = sector_segment_size ? 32 : 128;
 
         unsigned block_address = line_size_based_tag_func(addr, segment_size);
         unsigned chunk =
@@ -591,7 +591,6 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
   unsigned segment_size = 0;
   unsigned warp_parts = m_config->mem_warp_parts;
   bool sector_segment_size = false;
-//daero
   if (m_config->gpgpu_coalesce_arch >= 20 &&
       m_config->gpgpu_coalesce_arch < 39) {
     // Fermi and Kepler, L1 is normal and L2 is sector
@@ -630,6 +629,8 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
       if (!active(thread)) continue;
 
       new_addr_type addr = m_per_scalar_thread[thread].memreqaddr[0];
+      //if((addr>=0xC0000000)&&(addr<0xC2531A00)) segment_size = 128;//daero
+      if((addr>=0xC0000000)&&(addr<0xC04C0300)) segment_size = 128;
       unsigned block_address = line_size_based_tag_func(addr, segment_size);
       unsigned chunk =
           (addr & 127) / 32;  // which 32-byte chunk within in a 128-byte chunk
@@ -658,7 +659,7 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
         info = &subwarp_transactions[block_address].back();
       }
       assert(info);
-      //daero check info
+
       info->chunks.set(chunk);
       info->active.set(thread);
       unsigned idx = (addr & 127);
@@ -686,7 +687,6 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
     }
   }
 }
-//daero
 void warp_inst_t::memory_coalescing_arch_reduce_and_send(
     bool is_write, mem_access_type access_type, const transaction_info &info,
     new_addr_type addr, unsigned segment_size) {
@@ -697,7 +697,7 @@ void warp_inst_t::memory_coalescing_arch_reduce_and_send(
   std::bitset<2> h;  // halves (used to check if 64 byte segment can be
                      // compressed into a single 32 byte segment)
 
-  /*if((addr>=0xC0000000)&&(addr<0xC2531A00)) //daero //add printf for checking addr 
+  /*if((addr>=0xC0000000)&&(addr<0xC2531A00)) //daero
   //if((m_addr>=0xC0000000)&&(m_addr<0xC1E84800)) //daero
         size = 128;
   else  size = segment_size; */
@@ -742,6 +742,7 @@ void warp_inst_t::memory_coalescing_arch_reduce_and_send(
       assert(lower_half_used && upper_half_used);
     }
   }
+  //printf("daero mf sector_mask-2 : %d\n");
   m_accessq.push_back(mem_access_t(access_type, addr, size, is_write,
                                    info.active, info.bytes, info.chunks,
                                    m_config->gpgpu_ctx));

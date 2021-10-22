@@ -1665,6 +1665,7 @@ void shader_core_ctx::execute() {
   }
   for (unsigned n = 0; n < m_num_function_units; n++) {
     unsigned multiplier = m_fu[n]->clock_multiplier();
+    //printf("daero+ muliplier = %d\n",multiplier);
     for (unsigned c = 0; c < multiplier; c++) m_fu[n]->cycle();
     m_fu[n]->active_lanes_in_pipeline();
     unsigned issue_port = m_issue_port[n];
@@ -1808,10 +1809,12 @@ mem_stage_stall_type ldst_unit::process_cache_access(
   bool write_sent = was_write_sent(events);
   bool read_sent = was_read_sent(events);
   if (write_sent) {
-    unsigned inc_ack = (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)
+    
+    //daero unsigned inc_ack = (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)
+    unsigned inc_ack = (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)&&(mf->get_data_long()==0)
                            ? (mf->get_data_size() / SECTOR_SIZE)
                            : 1;
-
+    //printf("daero-1, get_data_long : %d, inc_ack : %d\n",mf->get_data_long(), inc_ack);
     for (unsigned i = 0; i < inc_ack; ++i)
       m_core->inc_store_req(inst.warp_id());
   }
@@ -1881,9 +1884,11 @@ mem_stage_stall_type ldst_unit::process_memory_access_queue_l1cache(
 
         if (mf->get_inst().is_store()) {
           unsigned inc_ack =
-              (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)
+              //daero (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)
+              (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)&&(mf->get_data_long()==0)
                   ? (mf->get_data_size() / SECTOR_SIZE)
                   : 1;
+    //printf("daero-2, get_data_long : %d, inc_ack : %d\n",mf->get_data_long(), inc_ack);
 
           for (unsigned i = 0; i < inc_ack; ++i)
             m_core->inc_store_req(inst.warp_id());
@@ -1953,12 +1958,13 @@ void ldst_unit::L1_latency_queue_cycle() {
         // For write hit in WB policy
         if (mf_next->get_inst().is_store() && !write_sent) {
           unsigned dec_ack =
-              (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)
+              //daero (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)
+              (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)&&(mf_next->get_data_long()==0)
                   ? (mf_next->get_data_size() / SECTOR_SIZE)
                   : 1;
+//printf("daero-3, get_data_long : %d, dec_ack : %d\n",mf_next->get_data_long(), dec_ack);
 
           mf_next->set_reply();
-
           for (unsigned i = 0; i < dec_ack; ++i) m_core->store_ack(mf_next);
         }
 
@@ -2576,6 +2582,8 @@ void ldst_unit::cycle() {
     } else {
       if (mf->get_type() == WRITE_ACK ||
           (m_config->gpgpu_perfect_mem && mf->get_is_write())) {
+        /*printf("daero+4, mf-get_type = %d, gpgpu_perfect_mem = %d, get_is_write = %d\n",
+                      mf->get_type(),m_config->gpgpu_perfect_mem,mf->get_is_write());*/
         m_core->store_ack(mf);
         m_response_fifo.pop_front();
         delete mf;
@@ -3358,7 +3366,7 @@ void shader_core_ctx::cycle() {
 
   m_stats->shader_cycles[m_sid]++;
   writeback();
-  execute();
+  execute(); //daero+
   read_operands();
   issue();
   for (int i = 0; i < m_config->inst_fetch_throughput; ++i) {
@@ -4132,7 +4140,7 @@ simt_core_cluster::simt_core_cluster(class gpgpu_sim *gpu, unsigned cluster_id,
 void simt_core_cluster::core_cycle() {
   for (std::list<unsigned>::iterator it = m_core_sim_order.begin();
        it != m_core_sim_order.end(); ++it) {
-    m_core[*it]->cycle();
+    m_core[*it]->cycle(); //daero+
   }
 
   if (m_config->simt_core_sim_order == 1) {
@@ -4343,6 +4351,7 @@ void simt_core_cluster::icnt_cycle() {
     mf->set_status(IN_CLUSTER_TO_SHADER_QUEUE,
                    m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
     // m_memory_stats->memlatstat_read_done(mf,m_shader_config->max_warps_per_shader);
+
     m_response_fifo.push_back(mf);
     m_stats->n_mem_to_simt[m_cluster_id] += mf->get_num_flits(false);
   }

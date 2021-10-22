@@ -1827,6 +1827,7 @@ void gpgpu_sim::cycle() {
     m_power_stats->pwr_mem_stat->core_cache_stats[CURRENT_STAT_IDX].clear();
     for (unsigned i = 0; i < m_shader_config->n_simt_clusters; i++) {
       if (m_cluster[i]->get_not_completed() || get_more_cta_left()) {
+        //printf("daero + get_not_completed = %d, get_more_cta_left = %d \n",m_cluster[i]->get_not_completed(), get_more_cta_left());
         m_cluster[i]->core_cycle();
         *active_sms += m_cluster[i]->get_n_active_sms();
       }

@@ -209,9 +209,10 @@ class shd_warp_t {
   void clear_imiss_pending() { m_imiss_pending = false; }
 
   bool stores_done() const { return m_stores_outstanding == 0; }
-  void inc_store_req() { m_stores_outstanding++; }
+  void inc_store_req() { m_stores_outstanding++; /*printf("daero, inc m_stores_outstanding : %d\n",m_stores_outstanding);*/}
   void dec_store_req() {
-    assert(m_stores_outstanding > 0);
+    //printf("daero, dec m_stores_outstanding : %d\n",m_stores_outstanding);
+    assert(m_stores_outstanding > 0); //daero+
     m_stores_outstanding--;
   }
 
@@ -227,7 +228,8 @@ class shd_warp_t {
     return (num_inst_in_pipeline() - num_inst_in_buffer());
   }
   bool inst_in_pipeline() const { return m_inst_in_pipeline > 0; }
-  void inc_inst_in_pipeline() { m_inst_in_pipeline++; }
+  void inc_inst_in_pipeline() { m_inst_in_pipeline++; 
+  }
   void dec_inst_in_pipeline() {
     assert(m_inst_in_pipeline > 0);
     m_inst_in_pipeline--;

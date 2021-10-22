@@ -159,7 +159,6 @@ struct cudaArray {
   int width;
   int height;
   int size;  // in bytes
-  int strong; //daero
   unsigned dimensions;
 };
 
@@ -1007,8 +1006,7 @@ cudaError_t cudaLaunchInternal(const char *hostFun,
   return g_last_cudaError = cudaSuccess;
 }
 
-//daero cudaError_t cudaMallocInternal(void **devPtr, size_t size,
-cudaError_t cudaMallocInternal(void **devPtr, size_t size, int strong = NULL,
+cudaError_t cudaMallocInternal(void **devPtr, size_t size,
 
                                gpgpu_context *gpgpu_ctx = NULL) {
   gpgpu_context *ctx;
@@ -1026,7 +1024,6 @@ cudaError_t cudaMallocInternal(void **devPtr, size_t size, int strong = NULL,
     printf("GPGPU-Sim PTX: cudaMallocing %zu bytes starting at 0x%llx..\n",
            size, (unsigned long long)*devPtr);
     ctx->api->g_mallocPtr_Size[(unsigned long long)*devPtr] = size;
-    ctx->api->g_mallocPtr_Strong[(unsigned long long)*devPtr] = strong; //daero
   }
   if (*devPtr) {
     return g_last_cudaError = cudaSuccess;
@@ -2310,10 +2307,6 @@ cudaError_t cudaPeekAtLastError(void) { return g_last_cudaError; }
 
 __host__ cudaError_t CUDARTAPI cudaMalloc(void **devPtr, size_t size) {
   return cudaMallocInternal(devPtr, size);
-}
-//daero
-__host__ cudaError_t CUDARTAPI cudaMalloc_strong(void **devPtr, size_t size) {
-  return cudaMallocInternal(devPtr, size, 1);
 }
 
 __host__ cudaError_t CUDARTAPI cudaMallocHost(void **ptr, size_t size) {

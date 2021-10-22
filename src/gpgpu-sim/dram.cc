@@ -234,7 +234,7 @@ dram_req_t::dram_req_t(class mem_fetch *mf, unsigned banks,
   row = tlx.row;
   col = tlx.col;
   nbytes = mf->get_data_size();
-
+  nbytes_long = mf->get_data_long();//daero
   timestamp = m_gpu->gpu_tot_sim_cycle + m_gpu->gpu_sim_cycle;
   addr = mf->get_addr();
   insertion_time = (unsigned)m_gpu->gpu_sim_cycle;
@@ -292,7 +292,12 @@ void dram_t::cycle() {
       printf("\tDQ: BK%d Row:%03x Col:%03x", cmd->bk, cmd->row,
              cmd->col + cmd->dqbytes);
 #endif
-      cmd->dqbytes += m_config->dram_atom_size;// check
+      if(cmd->nbytes_long) {
+        cmd->dqbytes += m_config->dram_atom_size*4;// check
+      } else {
+        cmd->dqbytes += m_config->dram_atom_size;// check
+
+      }
 
       if (cmd->dqbytes >= cmd->nbytes) {
         mem_fetch *data = cmd->data;
@@ -300,6 +305,7 @@ void dram_t::cycle() {
                          m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle);
         if (data->get_access_type() != L1_WRBK_ACC &&
             data->get_access_type() != L2_WRBK_ACC) {
+              
           data->set_reply();
           returnq->push(data);
         } else {
@@ -565,9 +571,8 @@ bool dram_t::issue_col_command(int j) {
         rwq->set_min_length(m_config->CL);
       }
       rwq->push(bk[j]->mrq);
-      //daero
-      //printf("\tdaero  nbytes : %03x \n", bk[j]->mrq->nbytes);
-      if (bk[j]->mrq->nbytes == 128) { // check nbytes = 128
+      if (bk[j]->mrq->nbytes_long == 1) { //daero
+        assert(bk[j]->mrq->nbytes == 128);
         bk[j]->mrq->txbytes += m_config->dram_atom_long_size;
         CCDc = m_config->tCCD*4;
         bkgrp[grp]->CCDLc = m_config->tCCDL*4;
@@ -575,7 +580,7 @@ bool dram_t::issue_col_command(int j) {
         bk[j]->RTPc = m_config->BL*4 / m_config->data_command_freq_ratio; //BL
         bkgrp[grp]->RTPLc = m_config->tRTPL + m_config->tCCDL*3;
       } else { //add assert
-        assert(bk[j]->mrq->nbytes != 32);
+        assert(bk[j]->mrq->nbytes_long == 0); //Check 
         bk[j]->mrq->txbytes += m_config->dram_atom_size;
         CCDc = m_config->tCCD;
         bkgrp[grp]->CCDLc = m_config->tCCDL;
@@ -589,12 +594,11 @@ bool dram_t::issue_col_command(int j) {
       else
         n_rd++;
 
-      //daero
-      if (bk[j]->mrq->nbytes == 128) {
+      if (bk[j]->mrq->nbytes_long == 1) {//daero
         bwutil += m_config->BL*4 / m_config->data_command_freq_ratio;
         bwutil_partial += m_config->BL*4 / m_config->data_command_freq_ratio;
       } else { //add assert
-        assert(bk[j]->mrq->nbytes != 32);
+        assert(bk[j]->mrq->nbytes_long == 0);
         bwutil += m_config->BL / m_config->data_command_freq_ratio;
         bwutil_partial += m_config->BL / m_config->data_command_freq_ratio;
       }
@@ -619,17 +623,15 @@ bool dram_t::issue_col_command(int j) {
         rwq->set_min_length(m_config->WL);
       }
       rwq->push(bk[j]->mrq);
-
-      //daero
-      //printf("\tdaero  nbytes : %03x \n", bk[j]->mrq->nbytes);
-      if (bk[j]->mrq->nbytes == 128) { // check nbytes = 128
+      if (bk[j]->mrq->nbytes_long == 1) { //daero
+        assert(bk[j]->mrq->nbytes == 128);
         bk[j]->mrq->txbytes += m_config->dram_atom_long_size;
         CCDc = m_config->tCCD*4;
         bkgrp[grp]->CCDLc = m_config->tCCDL*4;
         WTRc = m_config->tWTR + m_config->tCCDL*3;
         bk[j]->WTPc = m_config->tWTP + m_config->tCCDL*3;
       } else { //add assert
-        assert(bk[j]->mrq->nbytes != 32);
+        assert(bk[j]->mrq->nbytes_long == 0);
         bk[j]->mrq->txbytes += m_config->dram_atom_size;
         CCDc = m_config->tCCD;
         bkgrp[grp]->CCDLc = m_config->tCCDL;
@@ -642,11 +644,11 @@ bool dram_t::issue_col_command(int j) {
         n_wr_WB++;
       else
         n_wr++;
-      if (bk[j]->mrq->nbytes == 128) {
+      if (bk[j]->mrq->nbytes_long == 1) { //daero
         bwutil += m_config->BL*4 / m_config->data_command_freq_ratio;
         bwutil_partial += m_config->BL*4 / m_config->data_command_freq_ratio;
       } else { //add assert
-        assert(bk[j]->mrq->nbytes != 32);
+        assert(bk[j]->mrq->nbytes_long == 0);
         bwutil += m_config->BL / m_config->data_command_freq_ratio;
         bwutil_partial += m_config->BL / m_config->data_command_freq_ratio;
       }
